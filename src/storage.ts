@@ -6,7 +6,15 @@ export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    return JSON.parse(raw) as AppState;
+    const parsed = JSON.parse(raw);
+    if (
+      !parsed ||
+      typeof parsed.months !== 'object' ||
+      Array.isArray(parsed.months)
+    ) {
+      return defaultState();
+    }
+    return parsed as AppState;
   } catch {
     return defaultState();
   }
@@ -24,7 +32,11 @@ export function monthKey(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}`;
 }
 
-export function getOrCreateMonth(state: AppState, year: number, month: number): MonthData {
+export function getOrCreateMonth(
+  state: AppState,
+  year: number,
+  month: number,
+): MonthData {
   const key = monthKey(year, month);
   if (state.months[key]) return state.months[key];
   return { year, month, transactions: [], carryOver: 0 };
@@ -38,7 +50,6 @@ export function calcBalance(data: MonthData): number {
   return data.carryOver + txTotal;
 }
 
-/** Dias restantes no mês (incluindo hoje) */
 export function remainingDays(year: number, month: number): number {
   const today = new Date();
   const lastDay = new Date(year, month + 1, 0).getDate();
@@ -51,8 +62,30 @@ export function remainingDays(year: number, month: number): number {
   return 0;
 }
 
+export function resolveCarryOver(
+  state: AppState,
+  y: number,
+  m: number,
+): number {
+  if (!state.carryOverEnabled) return 0;
+  let prevY = y;
+  let prevM = m - 1;
+  if (prevM < 0) {
+    prevM = 11;
+    prevY -= 1;
+  }
+  const prevKey = monthKey(prevY, prevM);
+  const prevData = state.months[prevKey];
+  if (!prevData) return 0;
+  return calcBalance(prevData);
+}
+
 /** Quanto pode gastar por dia até o fim do mês */
-export function calcDailyBudget(balance: number, year: number, month: number): number {
+export function calcDailyBudget(
+  balance: number,
+  year: number,
+  month: number,
+): number {
   const days = remainingDays(year, month);
   if (days <= 0) return 0;
   return balance / days;

@@ -7,6 +7,8 @@ import {
   getOrCreateMonth,
   calcBalance,
   calcDailyBudget,
+  remainingDays,
+  resolveCarryOver,
 } from './storage';
 import { MonthNavigator } from './components/MonthNavigator';
 import { Summary } from './components/Summary';
@@ -24,29 +26,23 @@ function App() {
     saveState(appState);
   }, [appState]);
 
-  const key = monthKey(year, month);
   const monthData = getOrCreateMonth(appState, year, month);
 
-  function resolveCarryOver(state: AppState, y: number, m: number): number {
-    if (!state.carryOverEnabled) return 0;
-    let prevY = y;
-    let prevM = m - 1;
-    if (prevM < 0) { prevM = 11; prevY -= 1; }
-    const prevKey = monthKey(prevY, prevM);
-    const prevData = state.months[prevKey];
-    if (!prevData) return 0;
-    return calcBalance(prevData);
-  }
-
-  function addTransaction(description: string, amount: number, type: TransactionType) {
+  function addTransaction(
+    description: string,
+    amount: number,
+    type: TransactionType,
+    date: string,
+  ) {
     const tx: Transaction = {
       id: crypto.randomUUID(),
       description,
       amount,
       type,
-      date: new Date().toISOString(),
+      date,
     };
-    setAppState(prev => {
+    setAppState((prev) => {
+      const key = monthKey(year, month);
       const existing = getOrCreateMonth(prev, year, month);
       const carryOver = resolveCarryOver(prev, year, month);
       const updated = {
@@ -59,18 +55,20 @@ function App() {
   }
 
   function removeTransaction(id: string) {
-    setAppState(prev => {
+    setAppState((prev) => {
+      const key = monthKey(year, month);
       const existing = getOrCreateMonth(prev, year, month);
       const updated = {
         ...existing,
-        transactions: existing.transactions.filter(t => t.id !== id),
+        transactions: existing.transactions.filter((t) => t.id !== id),
       };
       return { ...prev, months: { ...prev.months, [key]: updated } };
     });
   }
 
   function toggleCarryOver() {
-    setAppState(prev => {
+    setAppState((prev) => {
+      const key = monthKey(year, month);
       const enabled = !prev.carryOverEnabled;
       const existing = getOrCreateMonth(prev, year, month);
       const newCarryOver = enabled
@@ -88,7 +86,7 @@ function App() {
   function handleMonthChange(y: number, m: number) {
     setYear(y);
     setMonth(m);
-    setAppState(prev => {
+    setAppState((prev) => {
       const newKey = monthKey(y, m);
       const existing = getOrCreateMonth(prev, y, m);
       const carryOver = resolveCarryOver(prev, y, m);
@@ -102,29 +100,33 @@ function App() {
 
   const balance = calcBalance(monthData);
   const dailyBudget = calcDailyBudget(balance, year, month);
+  const days = remainingDays(year, month);
 
   return (
-    <div className="app">
-      <header className="app-header">
+    <div className='app'>
+      <header className='app-header'>
         <h1>💰 Orçamento Mensal</h1>
       </header>
-      <main className="app-main">
-        <MonthNavigator year={year} month={month} onChange={handleMonthChange} />
+      <main className='app-main'>
+        <MonthNavigator
+          year={year}
+          month={month}
+          onChange={handleMonthChange}
+        />
         <Summary
           balance={balance}
           dailyBudget={dailyBudget}
-          year={year}
-          month={month}
+          remainingDays={days}
           carryOver={monthData.carryOver}
           carryOverEnabled={appState.carryOverEnabled}
           onToggleCarryOver={toggleCarryOver}
         />
-        <section className="section">
-          <h2 className="section-title">Nova Transação</h2>
+        <section className='section'>
+          <h2 className='section-title'>Nova Transação</h2>
           <TransactionForm onAdd={addTransaction} />
         </section>
-        <section className="section">
-          <h2 className="section-title">Lançamentos</h2>
+        <section className='section'>
+          <h2 className='section-title'>Lançamentos</h2>
           <TransactionList
             transactions={monthData.transactions}
             onRemove={removeTransaction}
