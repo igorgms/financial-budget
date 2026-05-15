@@ -19,7 +19,7 @@ function todayISO(): string {
 export function TransactionForm({ onAdd }: Props) {
   const [description, setDescription] = useState('');
   const [amountCents, setAmountCents] = useState(0);
-  const [type, setType] = useState<TransactionType>('expense');
+  const [type, setType] = useState<TransactionType>('income');
   const [date, setDate] = useState(todayISO);
   const [error, setError] = useState('');
   const descRef = useRef<HTMLInputElement>(null);
@@ -67,7 +67,7 @@ export function TransactionForm({ onAdd }: Props) {
       <div className='form-row'>
         <input
           ref={descRef}
-          className='input'
+          className='input input--description'
           type='text'
           placeholder='Descrição'
           value={description}

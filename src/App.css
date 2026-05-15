@@ -190,8 +190,13 @@ body {
 .input--amount {
   flex: 0 1 130px;
 }
+
+.input--description {
+  flex: 1;
+}
+
 .input--date {
-  flex: 0 1 145px;
+  flex: 1;
   color-scheme: dark;
 }
 .type-toggle {
